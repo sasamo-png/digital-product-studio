@@ -28,6 +28,8 @@ import {
   AccordionTrigger,
 } from "@/components/ui/accordion";
 import { cn } from "@/lib/utils";
+import { apiKeyHeaders } from "@/lib/use-api-key";
+import { ApiKeyNotice } from "@/components/api-key-notice";
 import { type EbookDTO } from "@/lib/ebooks";
 
 const WRITING_STYLES = [
@@ -117,7 +119,7 @@ export default function EbookGeneratorPage() {
     try {
       const res = await fetch("/api/ebooks/generate", {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: { "Content-Type": "application/json", ...apiKeyHeaders() },
         body: JSON.stringify(form),
       });
 
@@ -156,6 +158,8 @@ export default function EbookGeneratorPage() {
           copy de venta.
         </p>
       </div>
+
+      <ApiKeyNotice />
 
       <div className="grid gap-8 lg:grid-cols-[1fr_1.2fr]">
         {/* Columna izquierda: formulario + lista */}

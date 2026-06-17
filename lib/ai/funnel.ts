@@ -146,11 +146,13 @@ function buildUserPrompt(input: GenerateFunnelInput): string {
 // ---------------------------------------------------------------------------
 
 export async function generateFunnel(
-  input: GenerateFunnelInput
+  input: GenerateFunnelInput,
+  apiKey: string
 ): Promise<GenerateFunnelOutput> {
   const parsedInput = generateFunnelInputSchema.parse(input);
 
   return generateStructured({
+    apiKey,
     schemaName: "funnel",
     jsonSchema: FUNNEL_JSON_SCHEMA,
     outputSchema: generateFunnelOutputSchema,

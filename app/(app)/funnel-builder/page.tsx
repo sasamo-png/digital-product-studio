@@ -26,7 +26,9 @@ import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
 import { CopyButton } from "@/components/copy-button";
+import { ApiKeyNotice } from "@/components/api-key-notice";
 import { cn } from "@/lib/utils";
+import { apiKeyHeaders } from "@/lib/use-api-key";
 import { type FunnelDTO } from "@/lib/funnel";
 
 type ProductOption = { id: string; title: string };
@@ -87,7 +89,7 @@ export default function FunnelBuilderPage() {
     try {
       const res = await fetch("/api/funnels/generate", {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: { "Content-Type": "application/json", ...apiKeyHeaders() },
         body: JSON.stringify(form),
       });
       const data = await res.json();
@@ -122,6 +124,8 @@ export default function FunnelBuilderPage() {
           ventas, emails y upsells.
         </p>
       </div>
+
+      <ApiKeyNotice />
 
       <div className="grid gap-8 lg:grid-cols-[1fr_1.4fr]">
         {/* Columna izquierda */}

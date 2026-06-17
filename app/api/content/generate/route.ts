@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 
 import { prisma } from "@/lib/prisma";
 import { generateContent, generateContentInputSchema } from "@/lib/ai/content";
+import { getUserApiKey, aiErrorResponse } from "@/lib/ai/request-key";
 import { serializeContent } from "@/lib/content";
 
 export const runtime = "nodejs";
@@ -46,18 +47,23 @@ export async function POST(request: Request) {
     }
   }
 
-  // 3. Generar el contenido con IA (lado servidor).
+  // 3. API key del usuario (BYOK) y generación con IA (lado servidor).
+  let apiKey: string;
+  try {
+    apiKey = getUserApiKey(request);
+  } catch (err) {
+    return aiErrorResponse(err);
+  }
+
   let pieces;
   try {
-    pieces = await generateContent(input);
+    pieces = await generateContent(input, apiKey);
   } catch (err) {
-    const message =
-      err instanceof Error ? err.message : "Error desconocido en la generación.";
-    console.error("[content/generate] fallo en generateContent:", message);
-    return NextResponse.json(
-      { error: `No se pudo generar el contenido: ${message}` },
-      { status: 502 }
+    console.error(
+      "[content/generate] fallo en generateContent:",
+      err instanceof Error ? err.message : err
     );
+    return aiErrorResponse(err);
   }
 
   // 4. Persistir cada pieza como entidad Content.

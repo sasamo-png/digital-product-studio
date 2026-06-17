@@ -5,6 +5,8 @@ import type { z } from "zod";
 import { getOpenAIClient, getActiveModel } from "./openai";
 
 type StructuredArgs<T> = {
+  // API key del usuario (BYOK). Obligatoria.
+  apiKey: string;
   // Nombre del schema (requerido por la API de OpenAI).
   schemaName: string;
   // JSON Schema para structured outputs (modo strict).
@@ -20,7 +22,7 @@ type StructuredArgs<T> = {
 // y validación zod. Centraliza el manejo de refusals, JSON inválido y parseo,
 // para que cada módulo (ebook, market research, …) no duplique este código.
 export async function generateStructured<T>(args: StructuredArgs<T>): Promise<T> {
-  const client = getOpenAIClient();
+  const client = getOpenAIClient(args.apiKey);
   const model = await getActiveModel();
 
   const completion = await client.chat.completions.create({

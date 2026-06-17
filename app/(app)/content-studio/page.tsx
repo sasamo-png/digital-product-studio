@@ -29,6 +29,8 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
 import { cn } from "@/lib/utils";
+import { apiKeyHeaders } from "@/lib/use-api-key";
+import { ApiKeyNotice } from "@/components/api-key-notice";
 import {
   CONTENT_PLATFORMS,
   type ContentDTO,
@@ -142,7 +144,7 @@ export default function ContentStudioPage() {
     try {
       const res = await fetch("/api/content/generate", {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: { "Content-Type": "application/json", ...apiKeyHeaders() },
         body: JSON.stringify({
           topic: form.topic,
           platforms: form.platforms,
@@ -177,6 +179,8 @@ export default function ContentStudioPage() {
           Genera contenido nativo para varias plataformas a partir de un tema.
         </p>
       </div>
+
+      <ApiKeyNotice />
 
       {/* Formulario */}
       <Card>

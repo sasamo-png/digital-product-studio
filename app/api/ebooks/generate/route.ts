@@ -3,6 +3,7 @@ import { ZodError } from "zod";
 
 import { prisma } from "@/lib/prisma";
 import { generateEbook, generateEbookInputSchema } from "@/lib/ai/ebook";
+import { getUserApiKey, aiErrorResponse } from "@/lib/ai/request-key";
 import { serializeEbook } from "@/lib/ebooks";
 
 // Prisma y OpenAI requieren el runtime de Node (no edge).
@@ -34,18 +35,23 @@ export async function POST(request: Request) {
   }
   const input = parsed.data;
 
-  // 3. Generar el ebook con IA (lado servidor).
+  // 3. API key del usuario (BYOK) y generación con IA (lado servidor).
+  let apiKey: string;
+  try {
+    apiKey = getUserApiKey(request);
+  } catch (err) {
+    return aiErrorResponse(err);
+  }
+
   let result;
   try {
-    result = await generateEbook(input);
+    result = await generateEbook(input, apiKey);
   } catch (err) {
-    const message =
-      err instanceof Error ? err.message : "Error desconocido en la generación.";
-    console.error("[ebooks/generate] fallo en generateEbook:", message);
-    return NextResponse.json(
-      { error: `No se pudo generar el ebook: ${message}` },
-      { status: 502 }
+    console.error(
+      "[ebooks/generate] fallo en generateEbook:",
+      err instanceof Error ? err.message : err
     );
+    return aiErrorResponse(err);
   }
 
   // 4. Persistir: Product + Ebook asociado.

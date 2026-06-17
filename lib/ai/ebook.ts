@@ -128,12 +128,14 @@ function buildUserPrompt(input: GenerateEbookInput): string {
 // ---------------------------------------------------------------------------
 
 export async function generateEbook(
-  input: GenerateEbookInput
+  input: GenerateEbookInput,
+  apiKey: string
 ): Promise<GenerateEbookOutput> {
   // Validación de entrada (defensa en profundidad; la route ya valida también).
   const parsedInput = generateEbookInputSchema.parse(input);
 
   return generateStructured({
+    apiKey,
     schemaName: "ebook",
     jsonSchema: EBOOK_JSON_SCHEMA,
     outputSchema: generateEbookOutputSchema,

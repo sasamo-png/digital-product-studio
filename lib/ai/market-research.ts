@@ -118,11 +118,13 @@ function buildUserPrompt(input: AnalyzeNicheInput): string {
 // ---------------------------------------------------------------------------
 
 export async function analyzeNiche(
-  input: AnalyzeNicheInput
+  input: AnalyzeNicheInput,
+  apiKey: string
 ): Promise<AnalyzeNicheOutput> {
   const parsedInput = analyzeNicheInputSchema.parse(input);
 
   return generateStructured({
+    apiKey,
     schemaName: "market_research",
     jsonSchema: MARKET_RESEARCH_JSON_SCHEMA,
     outputSchema: analyzeNicheOutputSchema,

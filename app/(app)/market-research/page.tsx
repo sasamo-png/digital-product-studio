@@ -34,6 +34,8 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { cn } from "@/lib/utils";
+import { apiKeyHeaders } from "@/lib/use-api-key";
+import { ApiKeyNotice } from "@/components/api-key-notice";
 import { type MarketResearchDTO } from "@/lib/market-research";
 
 type FormState = { niche: string; notes: string };
@@ -86,7 +88,7 @@ export default function MarketResearchPage() {
     try {
       const res = await fetch("/api/market-research/analyze", {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: { "Content-Type": "application/json", ...apiKeyHeaders() },
         body: JSON.stringify({
           niche: form.niche,
           notes: form.notes || undefined,
@@ -124,6 +126,8 @@ export default function MarketResearchPage() {
           competidores clave.
         </p>
       </div>
+
+      <ApiKeyNotice />
 
       <div className="grid gap-8 lg:grid-cols-[1fr_1.3fr]">
         {/* Columna izquierda: formulario + historial */}

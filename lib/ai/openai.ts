@@ -4,22 +4,23 @@ import OpenAI from "openai";
 
 import { prisma } from "@/lib/prisma";
 
-// Cliente de OpenAI inicializado SOLO en el servidor. La API key se lee de
-// process.env y nunca debe llegar al cliente ni a variables NEXT_PUBLIC_*.
-
-let client: OpenAI | null = null;
-
-export function getOpenAIClient(): OpenAI {
-  const apiKey = process.env.OPENAI_API_KEY;
-  if (!apiKey) {
-    throw new Error(
-      "OPENAI_API_KEY no está configurada. Añádela a .env.local (lado servidor)."
-    );
+// Error tipado para que las routes distingan "falta la key del usuario".
+export class MissingApiKeyError extends Error {
+  constructor() {
+    super("Falta tu API key de OpenAI.");
+    this.name = "MissingApiKeyError";
   }
-  if (!client) {
-    client = new OpenAI({ apiKey });
+}
+
+// BYOK (Bring Your Own Key): la API key la aporta el usuario en cada petición
+// (cabecera x-openai-key). NUNCA se lee de variables de entorno ni se persiste:
+// se crea un cliente nuevo, de usar y tirar, por llamada.
+export function getOpenAIClient(apiKey: string): OpenAI {
+  const key = apiKey?.trim();
+  if (!key) {
+    throw new MissingApiKeyError();
   }
-  return client;
+  return new OpenAI({ apiKey: key });
 }
 
 // Modelo configurable por entorno para poder cambiarlo sin tocar código.

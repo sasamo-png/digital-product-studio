@@ -102,11 +102,13 @@ function buildUserPrompt(input: GenerateSalesScriptsInput): string {
 // ---------------------------------------------------------------------------
 
 export async function generateSalesScripts(
-  input: GenerateSalesScriptsInput
+  input: GenerateSalesScriptsInput,
+  apiKey: string
 ): Promise<GenerateSalesScriptsOutput> {
   const parsedInput = generateSalesScriptsInputSchema.parse(input);
 
   return generateStructured({
+    apiKey,
     schemaName: "sales_scripts",
     jsonSchema: SALES_JSON_SCHEMA,
     outputSchema: generateSalesScriptsOutputSchema,

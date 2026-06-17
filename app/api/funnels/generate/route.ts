@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 
 import { prisma } from "@/lib/prisma";
 import { generateFunnel, generateFunnelInputSchema } from "@/lib/ai/funnel";
+import { getUserApiKey, aiErrorResponse } from "@/lib/ai/request-key";
 import { serializeFunnel } from "@/lib/funnel";
 
 export const runtime = "nodejs";
@@ -46,18 +47,23 @@ export async function POST(request: Request) {
     product.niche ? `, nicho: ${product.niche}` : ""
   }, precio: ${product.price} ${product.currency})`;
 
-  // 3. Generar el embudo con IA (lado servidor).
+  // 3. API key del usuario (BYOK) y generación con IA (lado servidor).
+  let apiKey: string;
+  try {
+    apiKey = getUserApiKey(request);
+  } catch (err) {
+    return aiErrorResponse(err);
+  }
+
   let result;
   try {
-    result = await generateFunnel({ ...input, productContext });
+    result = await generateFunnel({ ...input, productContext }, apiKey);
   } catch (err) {
-    const message =
-      err instanceof Error ? err.message : "Error desconocido en la generación.";
-    console.error("[funnels/generate] fallo en generateFunnel:", message);
-    return NextResponse.json(
-      { error: `No se pudo generar el embudo: ${message}` },
-      { status: 502 }
+    console.error(
+      "[funnels/generate] fallo en generateFunnel:",
+      err instanceof Error ? err.message : err
     );
+    return aiErrorResponse(err);
   }
 
   // 4. Persistir: Funnel vinculado al Product. Campos complejos como JSON.

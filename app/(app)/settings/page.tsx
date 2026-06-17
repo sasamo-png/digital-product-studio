@@ -7,6 +7,11 @@ import {
   AlertCircle,
   Check,
   ShieldCheck,
+  ShieldAlert,
+  KeyRound,
+  Eye,
+  EyeOff,
+  Trash2,
 } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
@@ -19,11 +24,10 @@ import {
 } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { useApiKey } from "@/lib/use-api-key";
 import type { SettingsDTO } from "@/lib/settings";
 
 // Opciones de modelo para la UI (todas soportan structured outputs).
-// Se define aquí (no en lib/settings, que es server-only) para no arrastrar
-// código de servidor al bundle del cliente.
 const MODEL_OPTIONS = ["gpt-4o-mini", "gpt-4o", "gpt-4.1-mini", "gpt-4.1"];
 
 const TONE_OPTIONS = [
@@ -35,6 +39,7 @@ const TONE_OPTIONS = [
 ];
 
 export default function SettingsPage() {
+  // --- Preferencias (servidor) ---
   const [form, setForm] = useState<SettingsDTO>({
     defaultModel: null,
     defaultTone: null,
@@ -44,6 +49,19 @@ export default function SettingsPage() {
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [saved, setSaved] = useState(false);
+
+  // --- API key del usuario (navegador, BYOK) ---
+  const { apiKey, saveApiKey, clearApiKey } = useApiKey();
+  const [keyInput, setKeyInput] = useState("");
+  const [showKey, setShowKey] = useState(false);
+  const [testing, setTesting] = useState(false);
+  const [keyMsg, setKeyMsg] = useState<{ ok: boolean; text: string } | null>(
+    null
+  );
+
+  useEffect(() => {
+    setKeyInput(apiKey);
+  }, [apiKey]);
 
   useEffect(() => {
     (async () => {
@@ -86,14 +104,163 @@ export default function SettingsPage() {
     }
   }
 
+  function handleSaveKey() {
+    saveApiKey(keyInput);
+    setKeyMsg({ ok: true, text: "Key guardada en este navegador." });
+  }
+
+  function handleClearKey() {
+    clearApiKey();
+    setKeyInput("");
+    setKeyMsg({ ok: true, text: "Key eliminada de este navegador." });
+  }
+
+  async function handleTestKey() {
+    const k = keyInput.trim();
+    if (!k) {
+      setKeyMsg({ ok: false, text: "Introduce una key primero." });
+      return;
+    }
+    setTesting(true);
+    setKeyMsg(null);
+    try {
+      const res = await fetch("/api/ai/validate", {
+        method: "POST",
+        headers: { "x-openai-key": k },
+      });
+      const json = await res.json();
+      if (res.ok && json.valid) {
+        saveApiKey(k); // si es válida, la guardamos
+        setKeyMsg({ ok: true, text: "Key válida y guardada ✓" });
+      } else {
+        setKeyMsg({ ok: false, text: json?.error || "Key no válida." });
+      }
+    } catch {
+      setKeyMsg({ ok: false, text: "No se pudo verificar la key." });
+    } finally {
+      setTesting(false);
+    }
+  }
+
   return (
     <div className="max-w-2xl space-y-8">
       <div className="space-y-1">
         <h1 className="text-3xl font-bold tracking-tight">Ajustes</h1>
         <p className="text-muted-foreground">
-          Preferencias por defecto de la plataforma.
+          Tu API key y las preferencias por defecto de la plataforma.
         </p>
       </div>
+
+      {/* Aviso de conexión sin cifrar */}
+      <div className="flex items-start gap-3 rounded-md border border-amber-500/50 bg-amber-500/10 p-4 text-sm">
+        <ShieldAlert className="mt-0.5 h-5 w-5 shrink-0 text-amber-600" />
+        <p className="text-amber-700">
+          Esta demo se sirve por <strong>HTTP sin cifrar</strong>. Úsala solo para
+          pruebas y, preferiblemente, con una API key con{" "}
+          <strong>límite de gasto bajo</strong>. No introduzcas claves críticas de
+          producción hasta que haya HTTPS.
+        </p>
+      </div>
+
+      {/* --- Card: Tu API Key (BYOK) --- */}
+      <Card>
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2 text-xl">
+            <KeyRound className="h-5 w-5 text-primary" />
+            Tu API Key de OpenAI
+          </CardTitle>
+          <CardDescription>
+            Cada persona usa su propia key. Se guarda <strong>solo en tu
+            navegador</strong> y se usa al vuelo en el servidor; nunca se almacena.
+          </CardDescription>
+        </CardHeader>
+        <CardContent className="space-y-3">
+          <div className="space-y-2">
+            <Label htmlFor="apiKey">API Key (empieza por sk-…)</Label>
+            <div className="flex gap-2">
+              <Input
+                id="apiKey"
+                type={showKey ? "text" : "password"}
+                placeholder="sk-..."
+                autoComplete="off"
+                value={keyInput}
+                onChange={(e) => {
+                  setKeyInput(e.target.value);
+                  setKeyMsg(null);
+                }}
+              />
+              <Button
+                type="button"
+                variant="outline"
+                size="icon"
+                onClick={() => setShowKey((s) => !s)}
+                aria-label={showKey ? "Ocultar" : "Mostrar"}
+              >
+                {showKey ? (
+                  <EyeOff className="h-4 w-4" />
+                ) : (
+                  <Eye className="h-4 w-4" />
+                )}
+              </Button>
+            </div>
+          </div>
+
+          <div className="flex flex-wrap gap-2">
+            <Button type="button" onClick={handleSaveKey} disabled={testing}>
+              Guardar
+            </Button>
+            <Button
+              type="button"
+              variant="outline"
+              onClick={handleTestKey}
+              disabled={testing}
+            >
+              {testing ? (
+                <>
+                  <Loader2 className="h-4 w-4 animate-spin" />
+                  Probando…
+                </>
+              ) : (
+                "Probar key"
+              )}
+            </Button>
+            <Button
+              type="button"
+              variant="ghost"
+              onClick={handleClearKey}
+              disabled={testing}
+            >
+              <Trash2 className="h-4 w-4" />
+              Borrar
+            </Button>
+          </div>
+
+          {keyMsg && (
+            <p
+              className={
+                keyMsg.ok
+                  ? "text-sm text-emerald-600"
+                  : "text-sm text-destructive"
+              }
+            >
+              {keyMsg.text}
+            </p>
+          )}
+
+          <p className="text-xs text-muted-foreground">
+            ¿No tienes key? Crea una en{" "}
+            <a
+              href="https://platform.openai.com/api-keys"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="underline"
+            >
+              platform.openai.com/api-keys
+            </a>
+            . El consumo se cobra a tu propia cuenta de OpenAI.
+          </p>
+        </CardContent>
+      </Card>
 
       {loading ? (
         <p className="text-sm text-muted-foreground">Cargando preferencias…</p>
@@ -142,7 +309,8 @@ export default function SettingsPage() {
                   ))}
                 </select>
                 <p className="text-xs text-muted-foreground">
-                  Sustituye a la variable OPENAI_MODEL para las generaciones con IA.
+                  Modelo que se usará en las generaciones (con la key de cada
+                  usuario).
                 </p>
               </div>
 
@@ -168,20 +336,20 @@ export default function SettingsPage() {
             </CardContent>
           </Card>
 
-          {/* Seguridad: la API key nunca se gestiona desde la UI */}
+          {/* Cómo se trata tu API key */}
           <Card className="border-dashed">
             <CardHeader>
               <CardTitle className="flex items-center gap-2 text-base">
                 <ShieldCheck className="h-5 w-5 text-emerald-500" />
-                Seguridad de la API key
+                Privacidad de tu API key
               </CardTitle>
             </CardHeader>
             <CardContent className="text-sm text-muted-foreground">
-              La API key de OpenAI vive exclusivamente en{" "}
-              <code className="rounded bg-muted px-1 py-0.5">.env.local</code> del
-              servidor. No se muestra, no se pide y no se almacena en la base de
-              datos ni en el cliente. Para cambiarla, edita el archivo de entorno y
-              reinicia el servidor.
+              Tu key se guarda únicamente en el{" "}
+              <strong>almacenamiento local de tu navegador</strong>. Se envía al
+              servidor solo durante cada generación, se usa al instante y{" "}
+              <strong>no se almacena ni se registra</strong> en el servidor, la base
+              de datos ni en commits. Borrarla aquí la elimina de tu navegador.
             </CardContent>
           </Card>
 

@@ -5,6 +5,7 @@ import {
   analyzeNiche,
   analyzeNicheInputSchema,
 } from "@/lib/ai/market-research";
+import { getUserApiKey, aiErrorResponse } from "@/lib/ai/request-key";
 import { scoreLabel, serializeMarketResearch } from "@/lib/market-research";
 
 export const runtime = "nodejs";
@@ -35,18 +36,23 @@ export async function POST(request: Request) {
   }
   const input = parsed.data;
 
-  // 3. Analizar el nicho con IA (lado servidor).
+  // 3. API key del usuario (BYOK) y análisis con IA (lado servidor).
+  let apiKey: string;
+  try {
+    apiKey = getUserApiKey(request);
+  } catch (err) {
+    return aiErrorResponse(err);
+  }
+
   let result;
   try {
-    result = await analyzeNiche(input);
+    result = await analyzeNiche(input, apiKey);
   } catch (err) {
-    const message =
-      err instanceof Error ? err.message : "Error desconocido en el análisis.";
-    console.error("[market-research/analyze] fallo en analyzeNiche:", message);
-    return NextResponse.json(
-      { error: `No se pudo analizar el nicho: ${message}` },
-      { status: 502 }
+    console.error(
+      "[market-research/analyze] fallo en analyzeNiche:",
+      err instanceof Error ? err.message : err
     );
+    return aiErrorResponse(err);
   }
 
   // 4. Persistir: MarketResearch + Competitor asociados.

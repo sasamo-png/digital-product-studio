@@ -5,6 +5,7 @@ import {
   generateSalesScripts,
   generateSalesScriptsInputSchema,
 } from "@/lib/ai/sales";
+import { getUserApiKey, aiErrorResponse } from "@/lib/ai/request-key";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -56,17 +57,22 @@ export async function POST(request: Request) {
     }, precio: ${product.price} ${product.currency})`;
   }
 
-  // 3. Generar los scripts con IA (lado servidor).
+  // 3. API key del usuario (BYOK) y generación con IA (lado servidor).
+  let apiKey: string;
   try {
-    const result = await generateSalesScripts({ ...input, productContext });
+    apiKey = getUserApiKey(request);
+  } catch (err) {
+    return aiErrorResponse(err);
+  }
+
+  try {
+    const result = await generateSalesScripts({ ...input, productContext }, apiKey);
     return NextResponse.json(result, { status: 200 });
   } catch (err) {
-    const message =
-      err instanceof Error ? err.message : "Error desconocido en la generación.";
-    console.error("[sales/scripts] fallo en generateSalesScripts:", message);
-    return NextResponse.json(
-      { error: `No se pudieron generar los scripts: ${message}` },
-      { status: 502 }
+    console.error(
+      "[sales/scripts] fallo en generateSalesScripts:",
+      err instanceof Error ? err.message : err
     );
+    return aiErrorResponse(err);
   }
 }

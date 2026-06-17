@@ -22,7 +22,9 @@ import {
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 import { CopyButton } from "@/components/copy-button";
+import { ApiKeyNotice } from "@/components/api-key-notice";
 import { cn } from "@/lib/utils";
+import { apiKeyHeaders } from "@/lib/use-api-key";
 import {
   SALES_CHANNELS,
   SALES_CHANNEL_LABELS,
@@ -78,7 +80,7 @@ export default function SalesAssistantPage() {
     try {
       const res = await fetch("/api/sales/scripts", {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: { "Content-Type": "application/json", ...apiKeyHeaders() },
         body: JSON.stringify({
           scenario,
           channel,
@@ -113,6 +115,8 @@ export default function SalesAssistantPage() {
           tu canal.
         </p>
       </div>
+
+      <ApiKeyNotice />
 
       <Card>
         <CardHeader>

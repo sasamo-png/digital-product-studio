@@ -105,11 +105,13 @@ function buildUserPrompt(input: GenerateContentInput): string {
 // ---------------------------------------------------------------------------
 
 export async function generateContent(
-  input: GenerateContentInput
+  input: GenerateContentInput,
+  apiKey: string
 ): Promise<ContentPiece[]> {
   const parsedInput = generateContentInputSchema.parse(input);
 
   const result = await generateStructured({
+    apiKey,
     schemaName: "content",
     jsonSchema: CONTENT_JSON_SCHEMA,
     outputSchema: generateContentOutputSchema,
