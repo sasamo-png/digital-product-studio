@@ -1,0 +1,257 @@
+// Digital Product Studio — modelo de datos (FASE 1)
+// SQLite en desarrollo (migrable a Postgres en producción).
+//
+// Notas sobre SQLite:
+//  - El conector SQLite de Prisma NO soporta el tipo `Json` ni `enum`.
+//    Por eso los campos que conceptualmente son JSON (capítulos, páginas,
+//    secuencias de emails, metadatos) se almacenan como `String` con JSON
+//    serializado, y los estados/tipos como `String` con valores por defecto.
+//    Al migrar a Postgres se pueden promover a `Json` y `enum` reales.
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+// ---------------------------------------------------------------------------
+// Investigación de mercado
+// ---------------------------------------------------------------------------
+
+model MarketResearch {
+  id                 String   @id @default(cuid())
+  niche              String
+  summary            String? // resumen ejecutivo generado por IA
+  demand             String   @default("unknown") // low | medium | high | unknown
+  demandScore        Int      @default(0) // 0-100
+  competition        String   @default("unknown") // low | medium | high | unknown
+  competitionScore   Int      @default(0) // 0-100
+  profitabilityScore Int      @default(0) // 0-100, score de rentabilidad
+  targetAudience     String? // descripción del público objetivo
+  keywords           String? // JSON: string[] de palabras clave
+  status             String   @default("draft") // draft | completed | archived
+
+  competitors Competitor[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([niche])
+}
+
+model Competitor {
+  id          String  @id @default(cuid())
+  name        String
+  url         String?
+  price       Float? // precio de su producto de referencia
+  strengths   String? // JSON: string[]
+  weaknesses  String? // JSON: string[]
+  marketShare Float? // cuota estimada 0-100
+  notes       String?
+
+  marketResearch   MarketResearch @relation(fields: [marketResearchId], references: [id], onDelete: Cascade)
+  marketResearchId String
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([marketResearchId])
+}
+
+// ---------------------------------------------------------------------------
+// Catálogo de productos
+// ---------------------------------------------------------------------------
+
+model Product {
+  id          String  @id @default(cuid())
+  title       String
+  description String?
+  type        String  @default("ebook") // ebook | course | template | service | other
+  niche       String?
+  price       Float   @default(0)
+  currency    String  @default("EUR")
+  status      String  @default("draft") // draft | published | archived
+
+  ebook    Ebook?
+  funnels  Funnel[]
+  sales    Sale[]
+  contents Content[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([status])
+  @@index([type])
+}
+
+model Ebook {
+  id        String  @id @default(cuid())
+  title     String
+  subtitle  String?
+  outline   String? // JSON: [{ title, summary }] (índice de capítulos)
+  chapters  String? // JSON: [{ title, content }]
+  coverUrl  String? // URL/ruta de la portada
+  coverPrompt String? // prompt usado para generar la portada
+  salesCopy String? // copy de venta generado por IA
+  language  String  @default("es")
+  status    String  @default("draft") // draft | generating | ready
+
+  product   Product @relation(fields: [productId], references: [id], onDelete: Cascade)
+  productId String  @unique
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+// ---------------------------------------------------------------------------
+// Contenido para redes / email
+// ---------------------------------------------------------------------------
+
+model Content {
+  id        String   @id @default(cuid())
+  title     String?
+  platform  String   @default("instagram") // instagram | tiktok | x | email | linkedin
+  format    String   @default("post") // post | reel | thread | story | newsletter
+  text      String // cuerpo del contenido
+  hashtags  String? // JSON: string[]
+  mediaUrl  String?
+  status    String   @default("draft") // draft | scheduled | published
+  scheduledAt DateTime?
+
+  // Vínculo opcional con un producto del catálogo.
+  product   Product? @relation(fields: [productId], references: [id], onDelete: SetNull)
+  productId String?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([platform])
+  @@index([status])
+  @@index([productId])
+}
+
+// ---------------------------------------------------------------------------
+// Embudos de venta y campañas
+// ---------------------------------------------------------------------------
+
+model Funnel {
+  id            String  @id @default(cuid())
+  name          String
+  description   String?
+  pages         String? // JSON: [{ type: 'landing'|'upsell'|'thankyou', ... }]
+  emailSequence String? // JSON: [{ subject, body, delayHours }]
+  status        String  @default("draft") // draft | active | paused
+
+  product   Product @relation(fields: [productId], references: [id], onDelete: Cascade)
+  productId String
+
+  campaigns Campaign[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([productId])
+}
+
+model Campaign {
+  id          String    @id @default(cuid())
+  name        String
+  channel     String    @default("email") // email | ads | social | organic
+  budget      Float?
+  startDate   DateTime?
+  endDate     DateTime?
+  impressions Int       @default(0)
+  clicks      Int       @default(0)
+  conversions Int       @default(0)
+  status      String    @default("draft") // draft | running | completed | paused
+
+  funnel   Funnel @relation(fields: [funnelId], references: [id], onDelete: Cascade)
+  funnelId String
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([funnelId])
+}
+
+// ---------------------------------------------------------------------------
+// CRM y ventas
+// ---------------------------------------------------------------------------
+
+model Customer {
+  id     String  @id @default(cuid())
+  name   String
+  email  String  @unique
+  phone  String?
+  source String  @default("organic") // organic | ads | referral | funnel | other
+  tags   String? // JSON: string[]
+  notes  String?
+
+  sales Sale[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([email])
+}
+
+model Sale {
+  id       String   @id @default(cuid())
+  amount   Float
+  currency String   @default("EUR")
+  status   String   @default("completed") // pending | completed | refunded
+  date     DateTime @default(now())
+
+  product   Product @relation(fields: [productId], references: [id])
+  productId String
+
+  customer   Customer @relation(fields: [customerId], references: [id])
+  customerId String
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([productId])
+  @@index([customerId])
+  @@index([date])
+}
+
+// ---------------------------------------------------------------------------
+// Analítica (snapshots de métricas)
+// ---------------------------------------------------------------------------
+
+model Analytics {
+  id             String   @id @default(cuid())
+  date           DateTime @default(now()) // fecha del snapshot
+  period         String   @default("daily") // daily | weekly | monthly
+  revenue        Float    @default(0)
+  leads          Int      @default(0)
+  customers      Int      @default(0)
+  conversionRate Float    @default(0) // 0-100 (%)
+  visitors       Int      @default(0)
+  metadata       String? // JSON: métricas adicionales por módulo
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([date])
+  @@index([period])
+}
+
+// ---------------------------------------------------------------------------
+// Preferencias de la app (singleton: una sola fila con id "default").
+// NUNCA almacena secretos como la API key (esa vive solo en variables de entorno).
+// ---------------------------------------------------------------------------
+
+model Settings {
+  id           String  @id @default("default")
+  defaultModel String? // modelo OpenAI por defecto (override de OPENAI_MODEL)
+  defaultTone  String? // tono de marca por defecto
+  brandName    String?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
