@@ -1,0 +1,17 @@
+node_modules
+.next
+.git
+.gitignore
+# Nunca meter secretos ni DB local en la imagen
+.env
+.env.*
+!.env.example
+*.log
+prisma/dev.db
+*.db
+*.db-journal
+# No hace falta en runtime
+README.md
+DEPLOY.md
+.vscode
+.idea
