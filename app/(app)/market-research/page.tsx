@@ -34,7 +34,7 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { cn } from "@/lib/utils";
-import { apiKeyHeaders } from "@/lib/use-api-key";
+import { apiKeyHeaders, useApiKey } from "@/lib/use-api-key";
 import { ApiKeyNotice } from "@/components/api-key-notice";
 import { type MarketResearchDTO } from "@/lib/market-research";
 
@@ -58,6 +58,7 @@ export default function MarketResearchPage() {
   const [isAnalyzing, setIsAnalyzing] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [loadingList, setLoadingList] = useState(true);
+  const { hasKey } = useApiKey();
 
   const loadHistory = useCallback(async () => {
     setLoadingList(true);
@@ -169,7 +170,7 @@ export default function MarketResearchPage() {
                 <Button
                   type="submit"
                   className="w-full"
-                  disabled={isAnalyzing}
+                  disabled={isAnalyzing || !hasKey}
                 >
                   {isAnalyzing ? (
                     <>
@@ -271,11 +272,13 @@ function ScoreRow({
   label,
   value,
   higherIsBetter,
+  rationale,
 }: {
   icon: typeof TrendingUp;
   label: string;
   value: number;
   higherIsBetter: boolean;
+  rationale?: string | null;
 }) {
   return (
     <div className="space-y-1.5">
@@ -290,6 +293,11 @@ function ScoreRow({
         value={value}
         indicatorClassName={scoreColor(value, higherIsBetter)}
       />
+      {rationale && (
+        <p className="text-xs leading-relaxed text-muted-foreground">
+          {rationale}
+        </p>
+      )}
     </div>
   );
 }
@@ -311,18 +319,21 @@ function ResearchResult({ research }: { research: MarketResearchDTO }) {
             label="Demanda"
             value={research.demandScore}
             higherIsBetter
+            rationale={research.demandRationale}
           />
           <ScoreRow
             icon={Swords}
             label="Competencia"
             value={research.competitionScore}
             higherIsBetter={false}
+            rationale={research.competitionRationale}
           />
           <ScoreRow
             icon={Coins}
             label="Rentabilidad"
             value={research.profitScore}
             higherIsBetter
+            rationale={research.profitRationale}
           />
         </section>
 
@@ -356,7 +367,7 @@ function ResearchResult({ research }: { research: MarketResearchDTO }) {
               </TableHeader>
               <TableBody>
                 {research.competitors.map((c, i) => (
-                  <TableRow key={i}>
+                  <TableRow key={`${i}-${c.name}`}>
                     <TableCell className="font-medium">{c.name}</TableCell>
                     <TableCell className="text-muted-foreground">
                       {c.strength}

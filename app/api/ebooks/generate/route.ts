@@ -1,10 +1,10 @@
 import { NextResponse } from "next/server";
-import { ZodError } from "zod";
 
 import { prisma } from "@/lib/prisma";
 import { generateEbook, generateEbookInputSchema } from "@/lib/ai/ebook";
 import { getUserApiKey, aiErrorResponse } from "@/lib/ai/request-key";
 import { serializeEbook } from "@/lib/ebooks";
+import { readJsonBody, jsonBodyErrorResponse } from "@/lib/http";
 
 // Prisma y OpenAI requieren el runtime de Node (no edge).
 export const runtime = "nodejs";
@@ -14,11 +14,14 @@ export async function POST(request: Request) {
   // 1. Parsear el cuerpo.
   let body: unknown;
   try {
-    body = await request.json();
-  } catch {
-    return NextResponse.json(
-      { error: "El cuerpo de la petición no es JSON válido." },
-      { status: 400 }
+    body = await readJsonBody(request);
+  } catch (err) {
+    return (
+      jsonBodyErrorResponse(err) ??
+      NextResponse.json(
+        { error: "El cuerpo de la petición no es JSON válido." },
+        { status: 400 }
+      )
     );
   }
 
@@ -87,7 +90,7 @@ export async function POST(request: Request) {
       err instanceof Error ? err.message : "Error desconocido al guardar.";
     console.error("[ebooks/generate] fallo al persistir:", message);
     return NextResponse.json(
-      { error: `El ebook se generó pero no se pudo guardar: ${message}` },
+      { error: "El ebook se generó pero no se pudo guardar." },
       { status: 500 }
     );
   }

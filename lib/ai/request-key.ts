@@ -47,8 +47,11 @@ export function aiErrorResponse(err: unknown): NextResponse {
     );
   }
 
+  // No reenviamos `message` crudo al cliente (puede traer detalles internos del
+  // proveedor o de Prisma). El detalle ya se loguea en cada route.
+  console.error("[ai] error de generación:", message);
   return NextResponse.json(
-    { error: `No se pudo completar la generación: ${message}`, code: "AI_ERROR" },
+    { error: "No se pudo completar la generación. Inténtalo de nuevo.", code: "AI_ERROR" },
     { status: 502 }
   );
 }

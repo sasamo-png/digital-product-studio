@@ -4,15 +4,10 @@ import { prisma } from "@/lib/prisma";
 
 export const SETTINGS_ID = "default";
 
-// Modelos OpenAI sugeridos en la UI (todos soportan structured outputs).
-export const SUGGESTED_MODELS = [
-  "gpt-4o-mini",
-  "gpt-4o",
-  "gpt-4.1-mini",
-  "gpt-4.1",
-] as const;
+// Modelos soportados: ver la fuente única en lib/models.ts (SUPPORTED_MODELS).
 
-// DTO expuesto al cliente. NUNCA incluye secretos (la API key vive solo en env).
+// DTO expuesto al cliente. NUNCA incluye secretos. La API key es BYOK: vive solo
+// en el navegador del usuario, nunca en el servidor ni en esta tabla.
 export type SettingsDTO = {
   defaultModel: string | null;
   defaultTone: string | null;

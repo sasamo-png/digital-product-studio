@@ -24,19 +24,15 @@ import { Label } from "@/components/ui/label";
 import { CopyButton } from "@/components/copy-button";
 import { ApiKeyNotice } from "@/components/api-key-notice";
 import { cn } from "@/lib/utils";
-import { apiKeyHeaders } from "@/lib/use-api-key";
+import { apiKeyHeaders, useApiKey } from "@/lib/use-api-key";
 import {
   SALES_CHANNELS,
   SALES_CHANNEL_LABELS,
   type SalesChannel,
 } from "@/lib/sales";
-import { type ObjectionHandler } from "@/lib/ai/sales";
+import { type GenerateSalesScriptsOutput } from "@/lib/ai/sales";
 
-type ScriptsResult = {
-  dmScripts: string[];
-  objectionHandlers: ObjectionHandler[];
-  closingScripts: string[];
-};
+type ScriptsResult = GenerateSalesScriptsOutput;
 
 type ProductOption = { id: string; title: string };
 
@@ -57,6 +53,7 @@ export default function SalesAssistantPage() {
   const [tab, setTab] = useState<TabKey>("dms");
   const [isGenerating, setIsGenerating] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const { hasKey } = useApiKey();
 
   const loadProducts = useCallback(async () => {
     try {
@@ -180,7 +177,7 @@ export default function SalesAssistantPage() {
               </div>
             </div>
 
-            <Button type="submit" disabled={isGenerating}>
+            <Button type="submit" disabled={isGenerating || !hasKey}>
               {isGenerating ? (
                 <>
                   <Loader2 className="h-4 w-4 animate-spin" />

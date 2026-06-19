@@ -15,14 +15,18 @@ export type { ContentPlatform };
 // Esquemas de entrada y salida (zod) — fuente de verdad de los tipos.
 // ---------------------------------------------------------------------------
 
-export const generateContentInputSchema = z.object({
-  topic: z.string().trim().min(2, "El tema es obligatorio").max(300),
-  platforms: z
-    .array(contentPlatformSchema)
-    .min(1, "Selecciona al menos una plataforma"),
-  tone: z.string().trim().min(2, "Indica el tono").max(80),
-  productId: z.string().trim().min(1).optional(),
-});
+export const generateContentInputSchema = z
+  .object({
+    topic: z.string().trim().min(2, "El tema es obligatorio").max(300),
+    platforms: z
+      .array(contentPlatformSchema)
+      .min(1, "Selecciona al menos una plataforma"),
+    tone: z.string().trim().min(2, "Indica el tono").max(80),
+    productId: z.string().trim().min(1).optional(),
+    // Contexto del producto (lo inyecta la route si hay productId).
+    productContext: z.string().max(2000).optional(),
+  })
+  .strict();
 
 export type GenerateContentInput = z.infer<typeof generateContentInputSchema>;
 
@@ -86,18 +90,23 @@ const CONTENT_JSON_SCHEMA: Record<string, unknown> = {
 
 const SYSTEM_PROMPT = `Eres un estratega de contenido y copywriter de redes sociales.
 Creas contenido nativo y optimizado para cada plataforma. Escribe SIEMPRE en
-español. Adapta longitud, formato y estilo a cada red. Para email no uses
+español. Adapta longitud, formato y estilo a cada red, y diferencia de verdad
+cada pieza entre plataformas (no reescribas el mismo texto). Para email no uses
 hashtags. Responde únicamente con el JSON solicitado.`;
 
 function buildUserPrompt(input: GenerateContentInput): string {
   return [
     `Crea contenido sobre este tema: ${input.topic}`,
     `Tono: ${input.tone}`,
+    input.productContext ? `Producto a promocionar: ${input.productContext}` : null,
     `Genera EXACTAMENTE una pieza para cada una de estas plataformas: ${input.platforms.join(
       ", "
     )}.`,
+    `Cada pieza debe ser nativa de su plataforma y, si hay producto, anclarse a él.`,
     `Usa la clave exacta de plataforma en cada pieza.`,
-  ].join("\n");
+  ]
+    .filter(Boolean)
+    .join("\n");
 }
 
 // ---------------------------------------------------------------------------

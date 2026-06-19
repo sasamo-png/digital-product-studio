@@ -12,14 +12,16 @@ de terceros ni depender de plataformas externas propietarias.
 ## Stack
 - Next.js (App Router) + TypeScript
 - Tailwind CSS + shadcn/ui para componentes
-- Prisma ORM con SQLite en desarrollo (migrable a Postgres en producción)
+- Prisma ORM con PostgreSQL en todos los entornos (docker-compose en local)
 - Llamadas a LLM SOLO desde el servidor (route handlers / server actions)
 - Recharts para gráficas de analítica
 - lucide-react para iconos
 
 ## Reglas de seguridad (importantes)
-- La API key del modelo vive en `.env.local`, NUNCA en el cliente ni en commits.
-- `.env.local` debe estar en `.gitignore`.
+- BYOK: cada usuario aporta su API key de OpenAI desde `/settings`; se guarda
+  solo en su navegador (localStorage) y se envía por cabecera `x-openai-key`.
+- El servidor NUNCA persiste la key ni usa una `OPENAI_API_KEY` de entorno.
+- `.env` debe estar en `.gitignore` (DATABASE_URL es el único secreto local).
 - Toda llamada al LLM se encapsula en `/app/api/**/route.ts` (lado servidor).
 - Nunca exponer secretos en componentes cliente ni en variables `NEXT_PUBLIC_*`.
 

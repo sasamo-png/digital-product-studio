@@ -1,12 +1,13 @@
-// Digital Product Studio — modelo de datos (FASE 1)
-// SQLite en desarrollo (migrable a Postgres en producción).
+// Digital Product Studio — modelo de datos
+// PostgreSQL en todos los entornos (dev y producción). En local se puede
+// levantar con docker-compose (ver docker-compose.yml) o un Postgres propio.
 //
-// Notas sobre SQLite:
-//  - El conector SQLite de Prisma NO soporta el tipo `Json` ni `enum`.
-//    Por eso los campos que conceptualmente son JSON (capítulos, páginas,
-//    secuencias de emails, metadatos) se almacenan como `String` con JSON
-//    serializado, y los estados/tipos como `String` con valores por defecto.
-//    Al migrar a Postgres se pueden promover a `Json` y `enum` reales.
+// Notas:
+//  - Por compatibilidad histórica, los campos que conceptualmente son JSON
+//    (capítulos, páginas, secuencias de emails, metadatos) se almacenan como
+//    `String` con JSON serializado, y los estados/tipos como `String`. En
+//    Postgres podrían promoverse a `Json`/`enum` nativos en una migración
+//    futura (mejora opcional, no urgente).
 
 generator client {
   provider = "prisma-client-js"
@@ -27,9 +28,12 @@ model MarketResearch {
   summary            String? // resumen ejecutivo generado por IA
   demand             String   @default("unknown") // low | medium | high | unknown
   demandScore        Int      @default(0) // 0-100
+  demandRationale    String? // justificación IA de la nota de demanda
   competition        String   @default("unknown") // low | medium | high | unknown
   competitionScore   Int      @default(0) // 0-100
+  competitionRationale String? // justificación IA de la nota de competencia
   profitabilityScore Int      @default(0) // 0-100, score de rentabilidad
+  profitabilityRationale String? // justificación IA de la nota de rentabilidad
   targetAudience     String? // descripción del público objetivo
   keywords           String? // JSON: string[] de palabras clave
   status             String   @default("draft") // draft | completed | archived
@@ -47,8 +51,8 @@ model Competitor {
   name        String
   url         String?
   price       Float? // precio de su producto de referencia
-  strengths   String? // JSON: string[]
-  weaknesses  String? // JSON: string[]
+  strengths   String? // texto: principal fortaleza (texto libre, no JSON)
+  weaknesses  String? // texto: principal debilidad u oportunidad (texto libre, no JSON)
   marketShare Float? // cuota estimada 0-100
   notes       String?
 
@@ -113,7 +117,7 @@ model Ebook {
 model Content {
   id        String   @id @default(cuid())
   title     String?
-  platform  String   @default("instagram") // instagram | tiktok | x | email | linkedin
+  platform  String   @default("instagram") // ver CONTENT_PLATFORMS en lib/content.ts: instagram | tiktok | x | facebook | email
   format    String   @default("post") // post | reel | thread | story | newsletter
   text      String // cuerpo del contenido
   hashtags  String? // JSON: string[]

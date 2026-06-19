@@ -8,8 +8,11 @@ export type MarketResearchDTO = {
   niche: string;
   summary: string | null;
   demandScore: number;
+  demandRationale: string | null;
   competitionScore: number;
+  competitionRationale: string | null;
   profitScore: number;
+  profitRationale: string | null;
   status: string;
   competitors: NicheCompetitor[];
   createdAt: string;
@@ -30,8 +33,11 @@ export function serializeMarketResearch(
     niche: research.niche,
     summary: research.summary,
     demandScore: research.demandScore,
+    demandRationale: research.demandRationale,
     competitionScore: research.competitionScore,
+    competitionRationale: research.competitionRationale,
     profitScore: research.profitabilityScore,
+    profitRationale: research.profitabilityRationale,
     status: research.status,
     competitors: research.competitors.map((c) => ({
       name: c.name,

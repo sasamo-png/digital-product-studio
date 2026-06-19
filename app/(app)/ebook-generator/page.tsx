@@ -28,7 +28,7 @@ import {
   AccordionTrigger,
 } from "@/components/ui/accordion";
 import { cn } from "@/lib/utils";
-import { apiKeyHeaders } from "@/lib/use-api-key";
+import { apiKeyHeaders, useApiKey } from "@/lib/use-api-key";
 import { ApiKeyNotice } from "@/components/api-key-notice";
 import { type EbookDTO } from "@/lib/ebooks";
 
@@ -68,6 +68,7 @@ export default function EbookGeneratorPage() {
   const [step, setStep] = useState(0);
   const [error, setError] = useState<string | null>(null);
   const [loadingList, setLoadingList] = useState(true);
+  const { hasKey } = useApiKey();
 
   const stepTimer = useRef<ReturnType<typeof setInterval> | null>(null);
 
@@ -237,7 +238,7 @@ export default function EbookGeneratorPage() {
                 <Button
                   type="submit"
                   className="w-full"
-                  disabled={isGenerating}
+                  disabled={isGenerating || !hasKey}
                 >
                   {isGenerating ? (
                     <>

@@ -5,8 +5,8 @@ import { prisma } from "@/lib/prisma";
 // ===========================================================================
 // DECISIÓN DE DISEÑO: cálculo EN VIVO.
 // Las métricas se agregan directamente desde las tablas fuente (Sale, Customer,
-// Content, Product, …) en cada petición. Para la escala de esta app (SQLite,
-// un solo usuario) es la opción más simple y siempre consistente.
+// Content, Product, …) en cada petición. Para la escala de esta app (un solo
+// usuario) es la opción más simple y siempre consistente.
 //
 // La entidad `Analytics` del schema queda reservada para SNAPSHOTS históricos
 // (p. ej. un job periódico que congele KPIs por día/semana). Cuando el volumen
@@ -80,8 +80,9 @@ export async function getKpis(): Promise<AnalyticsKpis> {
   };
 }
 
-// Ingresos agregados por mes (YYYY-MM). Se agrega en JS porque SQLite no ofrece
-// truncado de fechas cómodo vía Prisma. Suficiente para el volumen actual.
+// Ingresos agregados por mes (YYYY-MM). Se agrega en JS para no depender del
+// dialecto SQL; suficiente para el volumen actual. Se usa UTC para que el
+// bucketing sea determinista e independiente de la zona horaria del servidor.
 export async function getRevenueOverTime(): Promise<RevenuePoint[]> {
   const sales = await prisma.sale.findMany({
     where: { status: COMPLETED },
@@ -92,7 +93,7 @@ export async function getRevenueOverTime(): Promise<RevenuePoint[]> {
   const byMonth = new Map<string, { revenue: number; sales: number }>();
   for (const s of sales) {
     const d = s.date;
-    const period = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}`;
+    const period = `${d.getUTCFullYear()}-${String(d.getUTCMonth() + 1).padStart(2, "0")}`;
     const bucket = byMonth.get(period) ?? { revenue: 0, sales: 0 };
     bucket.revenue += s.amount;
     bucket.sales += 1;

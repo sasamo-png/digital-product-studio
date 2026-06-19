@@ -11,17 +11,19 @@ export type { SalesChannel };
 // Esquemas de entrada y salida (zod).
 // ---------------------------------------------------------------------------
 
-export const generateSalesScriptsInputSchema = z.object({
-  productId: z.string().trim().min(1).optional(),
-  scenario: z
-    .string()
-    .trim()
-    .min(2, "Describe el escenario de venta")
-    .max(500),
-  channel: salesChannelSchema,
-  // Contexto del producto (lo inyecta la route si hay productId).
-  productContext: z.string().max(2000).optional(),
-});
+export const generateSalesScriptsInputSchema = z
+  .object({
+    productId: z.string().trim().min(1).optional(),
+    scenario: z
+      .string()
+      .trim()
+      .min(2, "Describe el escenario de venta")
+      .max(500),
+    channel: salesChannelSchema,
+    // Contexto del producto (lo inyecta la route si hay productId).
+    productContext: z.string().max(2000).optional(),
+  })
+  .strict();
 
 export type GenerateSalesScriptsInput = z.infer<
   typeof generateSalesScriptsInputSchema
@@ -80,18 +82,20 @@ const SALES_JSON_SCHEMA: Record<string, unknown> = {
 
 const SYSTEM_PROMPT = `Eres un experto en ventas consultivas de productos digitales.
 Escribes scripts naturales, empáticos y persuasivos, nunca agresivos.
-Escribe SIEMPRE en español. Adapta el tono al canal indicado.
+Escribe SIEMPRE en español. Adapta el tono al canal indicado y, si hay producto,
+referencia sus beneficios concretos; evita frases plantilla genéricas.
 Responde únicamente con el JSON solicitado.`;
 
 function buildUserPrompt(input: GenerateSalesScriptsInput): string {
   return [
-    `Genera material de ventas para este caso:`,
+    `Genera material de ventas específico para este caso:`,
     input.productContext ? `Producto: ${input.productContext}` : null,
     `Escenario: ${input.scenario}`,
     `Canal: ${input.channel}`,
     ``,
-    `Devuelve: 3-5 scripts de apertura (dmScripts), 4-6 manejos de objeciones`,
-    `(objectionHandlers) y 3-4 scripts de cierre (closingScripts).`,
+    `Devuelve varios scripts de apertura (dmScripts), los manejos de objeciones`,
+    `que sean realmente relevantes para este escenario (objectionHandlers) y`,
+    `varios scripts de cierre (closingScripts), todos adaptados al canal.`,
   ]
     .filter(Boolean)
     .join("\n");

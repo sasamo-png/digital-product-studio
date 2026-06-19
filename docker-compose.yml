@@ -1,0 +1,27 @@
+# PostgreSQL local para desarrollo.
+#   Levantar:   docker compose up -d db
+#   Migrar:     npx prisma migrate deploy
+#   Parar:      docker compose down   (los datos persisten en el volumen)
+#
+# Las credenciales coinciden con el DATABASE_URL de .env.example.
+services:
+  db:
+    image: postgres:16-alpine
+    container_name: dps_postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: dps_user
+      POSTGRES_PASSWORD: dps_password
+      POSTGRES_DB: digital_product_studio
+    ports:
+      - "5432:5432"
+    volumes:
+      - dps_pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U dps_user -d digital_product_studio"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+volumes:
+  dps_pgdata:

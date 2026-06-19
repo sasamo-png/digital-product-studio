@@ -7,8 +7,6 @@ import {
   Sparkles,
   AlertCircle,
   RefreshCw,
-  Copy,
-  Check,
   Instagram,
   Facebook,
   Music2,
@@ -29,8 +27,9 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
 import { cn } from "@/lib/utils";
-import { apiKeyHeaders } from "@/lib/use-api-key";
+import { apiKeyHeaders, useApiKey } from "@/lib/use-api-key";
 import { ApiKeyNotice } from "@/components/api-key-notice";
+import { CopyButton } from "@/components/copy-button";
 import {
   CONTENT_PLATFORMS,
   type ContentDTO,
@@ -81,6 +80,7 @@ export default function ContentStudioPage() {
   const [isGenerating, setIsGenerating] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [loadingList, setLoadingList] = useState(true);
+  const { hasKey } = useApiKey();
 
   const loadProducts = useCallback(async () => {
     try {
@@ -140,6 +140,7 @@ export default function ContentStudioPage() {
       setError("Selecciona al menos una plataforma.");
       return;
     }
+    setGenerated([]); // no mezclar el resultado anterior con un posible error nuevo
     setIsGenerating(true);
     try {
       const res = await fetch("/api/content/generate", {
@@ -273,7 +274,7 @@ export default function ContentStudioPage() {
               </div>
             </div>
 
-            <Button type="submit" disabled={isGenerating}>
+            <Button type="submit" disabled={isGenerating || !hasKey}>
               {isGenerating ? (
                 <>
                   <Loader2 className="h-4 w-4 animate-spin" />
@@ -382,7 +383,6 @@ function FilterChip({
 }
 
 function ContentPieceCard({ piece }: { piece: ContentDTO }) {
-  const [copied, setCopied] = useState(false);
   const meta =
     PLATFORM_META[piece.platform as ContentPlatform] ?? {
       label: piece.platform,
@@ -390,19 +390,10 @@ function ContentPieceCard({ piece }: { piece: ContentDTO }) {
     };
   const Icon = meta.icon;
 
-  async function copy() {
-    const hashtagLine =
-      piece.hashtags.length > 0
-        ? "\n\n" + piece.hashtags.map((h) => `#${h}`).join(" ")
-        : "";
-    try {
-      await navigator.clipboard.writeText(piece.body + hashtagLine);
-      setCopied(true);
-      setTimeout(() => setCopied(false), 1500);
-    } catch {
-      // clipboard puede fallar sin https; ignorar
-    }
-  }
+  const hashtagLine =
+    piece.hashtags.length > 0
+      ? "\n\n" + piece.hashtags.map((h) => `#${h}`).join(" ")
+      : "";
 
   return (
     <Card>
@@ -412,13 +403,7 @@ function ContentPieceCard({ piece }: { piece: ContentDTO }) {
           <span className="font-medium">{meta.label}</span>
           <Badge variant="secondary">{piece.format}</Badge>
         </div>
-        <Button variant="ghost" size="icon" onClick={copy} aria-label="Copiar">
-          {copied ? (
-            <Check className="h-4 w-4 text-emerald-500" />
-          ) : (
-            <Copy className="h-4 w-4" />
-          )}
-        </Button>
+        <CopyButton text={piece.body + hashtagLine} />
       </CardHeader>
       <CardContent className="space-y-3">
         <p className="whitespace-pre-wrap text-sm leading-relaxed">

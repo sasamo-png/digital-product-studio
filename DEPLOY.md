@@ -7,15 +7,18 @@ App **Next.js + Prisma (PostgreSQL)** servida en el **puerto 3000**.
 > (recomendado, ya está instalado) o (B) despliegue **manual** en **otro puerto**
 > (p. ej. 3001) detrás de Nginx, sin tocar Easypanel.
 >
-> 🔐 **Secretos:** ni la `DATABASE_URL` ni la `OPENAI_API_KEY` se commitean nunca.
-> Se introducen a mano en el servidor (archivo `.env` o panel de Easypanel).
+> 🔐 **Secretos:** la `DATABASE_URL` no se commitea nunca. Se introduce a mano
+> en el servidor (archivo `.env` o panel de Easypanel).
+>
+> 🔑 **API key de OpenAI:** la app es **BYOK** — cada usuario aporta su propia key
+> desde `/settings` (se guarda solo en su navegador). El servidor **no** necesita
+> ninguna `OPENAI_API_KEY`; no la configures en producción.
 
 ## Variables de entorno (las creas tú en el servidor)
 
 | Variable | Obligatoria | Ejemplo / valor |
 |----------|:--:|------|
 | `DATABASE_URL` | sí | `postgresql://dps_user:TU_PASS@localhost:5432/digital_product_studio?schema=public` |
-| `OPENAI_API_KEY` | sí | `sk-...` (tu clave; lado servidor) |
 | `OPENAI_MODEL` | no | `gpt-4o-mini` (por defecto si se omite) |
 | `NODE_ENV` | no | `production` |
 
@@ -38,9 +41,9 @@ desde su UI (https://5.189.172.97:3000). Los secretos quedan en el servidor.
 3. **Variables de entorno** de la App (pestaña Environment):
    ```
    DATABASE_URL=postgresql://<usuario>:<password>@<host-interno-postgres>:5432/<db>?schema=public
-   OPENAI_API_KEY=sk-...
    OPENAI_MODEL=gpt-4o-mini
    ```
+   > No configures `OPENAI_API_KEY`: la app es BYOK y el servidor no la usa.
 
 4. **Puerto / Dominio:**
    - La app expone el **3000** dentro del contenedor. En Easypanel mapea ese
@@ -97,10 +100,10 @@ cd digital-product-studio
 # Crear el .env de producción A MANO (NUNCA se commitea):
 cat > .env <<'ENV'
 DATABASE_URL="postgresql://dps_user:CAMBIA_ESTA_PASSWORD@localhost:5432/digital_product_studio?schema=public"
-OPENAI_API_KEY="sk-TU_CLAVE"
 OPENAI_MODEL="gpt-4o-mini"
 NODE_ENV="production"
 ENV
+# Nota: no se pone OPENAI_API_KEY — la app es BYOK (cada usuario aporta la suya).
 chmod 600 .env
 ```
 
@@ -207,4 +210,5 @@ pm2 reload digital-product-studio     # o: docker redeploy en Easypanel
 - **Rota la contraseña root del VPS** (se compartió en texto plano) y configura
   **claves SSH** en vez de contraseña.
 - Mantén `.env` con permisos `600` y fuera de git (ya está en `.gitignore`).
-- La API key solo vive en el servidor; nunca en el cliente ni en commits.
+- BYOK: la API key de OpenAI la aporta cada usuario desde `/settings` y vive solo
+  en su navegador; el servidor no la persiste ni la necesita.

@@ -26,9 +26,10 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { useApiKey } from "@/lib/use-api-key";
 import type { SettingsDTO } from "@/lib/settings";
+import { SUPPORTED_MODELS } from "@/lib/models";
 
-// Opciones de modelo para la UI (todas soportan structured outputs).
-const MODEL_OPTIONS = ["gpt-4o-mini", "gpt-4o", "gpt-4.1-mini", "gpt-4.1"];
+// Opciones de modelo para la UI (fuente única en lib/models.ts).
+const MODEL_OPTIONS = SUPPORTED_MODELS;
 
 const TONE_OPTIONS = [
   "Cercano y conversacional",

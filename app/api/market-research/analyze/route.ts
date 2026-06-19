@@ -7,6 +7,7 @@ import {
 } from "@/lib/ai/market-research";
 import { getUserApiKey, aiErrorResponse } from "@/lib/ai/request-key";
 import { scoreLabel, serializeMarketResearch } from "@/lib/market-research";
+import { readJsonBody, jsonBodyErrorResponse } from "@/lib/http";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -15,11 +16,14 @@ export async function POST(request: Request) {
   // 1. Parsear el cuerpo.
   let body: unknown;
   try {
-    body = await request.json();
-  } catch {
-    return NextResponse.json(
-      { error: "El cuerpo de la petición no es JSON válido." },
-      { status: 400 }
+    body = await readJsonBody(request);
+  } catch (err) {
+    return (
+      jsonBodyErrorResponse(err) ??
+      NextResponse.json(
+        { error: "El cuerpo de la petición no es JSON válido." },
+        { status: 400 }
+      )
     );
   }
 
@@ -63,9 +67,12 @@ export async function POST(request: Request) {
         summary: result.summary,
         demand: scoreLabel(result.demandScore),
         demandScore: result.demandScore,
+        demandRationale: result.demandRationale,
         competition: scoreLabel(result.competitionScore),
         competitionScore: result.competitionScore,
+        competitionRationale: result.competitionRationale,
         profitabilityScore: result.profitScore,
+        profitabilityRationale: result.profitRationale,
         status: "completed",
         competitors: {
           create: result.competitors.map((c) => ({
@@ -86,7 +93,7 @@ export async function POST(request: Request) {
       err instanceof Error ? err.message : "Error desconocido al guardar.";
     console.error("[market-research/analyze] fallo al persistir:", message);
     return NextResponse.json(
-      { error: `El análisis se generó pero no se pudo guardar: ${message}` },
+      { error: "El análisis se generó pero no se pudo guardar." },
       { status: 500 }
     );
   }

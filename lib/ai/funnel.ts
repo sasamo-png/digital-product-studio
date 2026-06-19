@@ -8,13 +8,15 @@ import { generateStructured } from "./structured";
 // Esquemas de entrada y salida (zod).
 // ---------------------------------------------------------------------------
 
-export const generateFunnelInputSchema = z.object({
-  productId: z.string().trim().min(1, "El producto es obligatorio"),
-  goal: z.string().trim().min(2, "Indica el objetivo del embudo").max(300),
-  audience: z.string().trim().min(2, "Describe la audiencia").max(400),
-  // Contexto del producto (lo inyecta la route desde la BD para enriquecer el prompt).
-  productContext: z.string().max(2000).optional(),
-});
+export const generateFunnelInputSchema = z
+  .object({
+    productId: z.string().trim().min(1, "El producto es obligatorio"),
+    goal: z.string().trim().min(2, "Indica el objetivo del embudo").max(300),
+    audience: z.string().trim().min(2, "Describe la audiencia").max(400),
+    // Contexto del producto (lo inyecta la route desde la BD para enriquecer el prompt).
+    productContext: z.string().max(2000).optional(),
+  })
+  .strict();
 
 export type GenerateFunnelInput = z.infer<typeof generateFunnelInputSchema>;
 
@@ -94,7 +96,8 @@ const FUNNEL_JSON_SCHEMA: Record<string, unknown> = {
     },
     emailSequence: {
       type: "array",
-      description: "Secuencia de 5 a 7 emails de venta.",
+      description:
+        "Secuencia de emails de venta; usa los que el objetivo y la audiencia necesiten (no una cantidad fija).",
       items: {
         type: "object",
         additionalProperties: false,
@@ -124,18 +127,22 @@ const FUNNEL_JSON_SCHEMA: Record<string, unknown> = {
 
 const SYSTEM_PROMPT = `Eres un experto en marketing de respuesta directa y embudos de
 venta para productos digitales. Diseñas embudos completos y persuasivos.
-Escribe SIEMPRE en español. La secuencia de emails debe tener entre 5 y 7 correos.
+Escribe SIEMPRE en español. Cada pieza (landing, página de ventas, emails,
+upsells) debe referenciar atributos concretos del producto y la audiencia
+indicados; nada de plantillas genéricas. La longitud de la secuencia de emails
+la decides según lo que el objetivo del embudo necesite.
 Responde únicamente con el JSON solicitado.`;
 
 function buildUserPrompt(input: GenerateFunnelInput): string {
   return [
-    `Diseña un embudo de venta completo.`,
+    `Diseña un embudo de venta completo y específico para este caso.`,
     input.productContext ? `Producto: ${input.productContext}` : null,
     `Objetivo del embudo: ${input.goal}`,
     `Audiencia: ${input.audience}`,
     ``,
     `Incluye: landing page (headline, subheadline, bullets, CTA),`,
-    `página de ventas por secciones, secuencia de 5-7 emails y upsells.`,
+    `página de ventas por secciones, una secuencia de emails con la longitud que`,
+    `el objetivo requiera, y upsells coherentes con el producto.`,
   ]
     .filter(Boolean)
     .join("\n");

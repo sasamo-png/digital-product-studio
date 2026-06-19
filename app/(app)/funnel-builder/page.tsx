@@ -28,7 +28,7 @@ import { Badge } from "@/components/ui/badge";
 import { CopyButton } from "@/components/copy-button";
 import { ApiKeyNotice } from "@/components/api-key-notice";
 import { cn } from "@/lib/utils";
-import { apiKeyHeaders } from "@/lib/use-api-key";
+import { apiKeyHeaders, useApiKey } from "@/lib/use-api-key";
 import { type FunnelDTO } from "@/lib/funnel";
 
 type ProductOption = { id: string; title: string };
@@ -43,6 +43,7 @@ export default function FunnelBuilderPage() {
   const [isGenerating, setIsGenerating] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [loadingList, setLoadingList] = useState(true);
+  const { hasKey } = useApiKey();
 
   const loadProducts = useCallback(async () => {
     try {
@@ -191,7 +192,11 @@ export default function FunnelBuilderPage() {
                   />
                 </div>
 
-                <Button type="submit" className="w-full" disabled={isGenerating}>
+                <Button
+                  type="submit"
+                  className="w-full"
+                  disabled={isGenerating || !hasKey}
+                >
                   {isGenerating ? (
                     <>
                       <Loader2 className="h-4 w-4 animate-spin" />
