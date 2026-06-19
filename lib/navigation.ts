@@ -1,6 +1,7 @@
 import {
   LayoutDashboard,
   Search,
+  Radar,
   Package,
   BookOpen,
   Megaphone,
@@ -39,6 +40,12 @@ export const navItems: NavItem[] = [
     href: "/market-research",
     icon: Search,
     description: "Análisis de nichos con IA",
+  },
+  {
+    title: "Radar de Anuncios",
+    href: "/radar",
+    icon: Radar,
+    description: "Espía anuncios activos en la Biblioteca de Meta",
   },
   {
     title: "Constructor de productos",
