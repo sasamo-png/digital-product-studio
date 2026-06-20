@@ -74,6 +74,12 @@ export default function RadarPage() {
     [counts]
   );
 
+  // Top anunciantes: solo los que alcanzan el mínimo de anuncios en esta búsqueda.
+  const topRank = useMemo(
+    () => rank.filter(([, c]) => c >= minAds),
+    [rank, minAds]
+  );
+
   const shown = useMemo(() => {
     if (!data) return [] as RadarAd[];
     let list = selectedAdv
@@ -329,16 +335,22 @@ export default function RadarPage() {
             <CardHeader className="pb-3">
               <CardTitle className="flex items-center gap-2 text-lg">
                 <Trophy className="h-5 w-5 text-amber-500" />
-                Top anunciantes ({rank.length})
+                Top anunciantes ({topRank.length})
               </CardTitle>
               <CardDescription>
-                El número es cuántos anuncios de cada uno aparecen <b>en esta búsqueda</b> (no su total).
-                Clic para filtrar; luego puedes analizar <b>todos</b> sus anuncios.
+                Anunciantes con ≥ {minAds} anuncios <b>en esta búsqueda</b> (ajusta el mínimo arriba).
+                El número es cuántos aparecen aquí, no su total. Clic para filtrar; luego puedes
+                analizar <b>todos</b> sus anuncios.
               </CardDescription>
             </CardHeader>
             <CardContent>
               <div className="flex flex-wrap gap-2">
-                {rank.map(([name, c], i) => (
+                {topRank.length === 0 && (
+                  <span className="text-sm text-muted-foreground">
+                    Ningún anunciante llega a {minAds} anuncios en esta búsqueda. Baja el mínimo.
+                  </span>
+                )}
+                {topRank.map(([name, c], i) => (
                   <button
                     key={name}
                     onClick={() => setSelectedAdv((cur) => (cur === name ? null : name))}
