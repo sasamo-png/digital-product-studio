@@ -95,9 +95,9 @@ export default function RadarPage() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [data, selectedAdv, minAds, typeFilter, sortBy, counts]);
 
-  async function handleSearch(e: React.FormEvent) {
-    e.preventDefault();
-    if (!keyword.trim()) return;
+  async function runSearch(kw: string) {
+    const term = kw.trim();
+    if (!term) return;
     setError(null);
     setLoading(true);
     setData(null);
@@ -108,7 +108,7 @@ export default function RadarPage() {
       const res = await fetch("/api/radar", {
         method: "POST",
         headers: { "Content-Type": "application/json", ...apiKeyHeaders() },
-        body: JSON.stringify({ keyword: keyword.trim(), country }),
+        body: JSON.stringify({ keyword: term, country }),
         signal: controller.signal,
       });
       clearTimeout(timeout);
@@ -126,6 +126,19 @@ export default function RadarPage() {
     } finally {
       setLoading(false);
     }
+  }
+
+  function handleSearch(e: React.FormEvent) {
+    e.preventDefault();
+    runSearch(keyword);
+  }
+
+  // Re-analiza por el nombre del anunciante → muestra TODOS sus anuncios, no solo
+  // los que coincidían con la búsqueda anterior. El KPI "Resultados activos" pasa
+  // a reflejar el total real de ese anunciante.
+  function deepScanAdvertiser(name: string) {
+    setKeyword(name);
+    runSearch(name);
   }
 
   function exportData(fmt: "csv" | "json") {
@@ -318,7 +331,10 @@ export default function RadarPage() {
                 <Trophy className="h-5 w-5 text-amber-500" />
                 Top anunciantes ({rank.length})
               </CardTitle>
-              <CardDescription>Clic en un anunciante para ver solo sus anuncios.</CardDescription>
+              <CardDescription>
+                El número es cuántos anuncios de cada uno aparecen <b>en esta búsqueda</b> (no su total).
+                Clic para filtrar; luego puedes analizar <b>todos</b> sus anuncios.
+              </CardDescription>
             </CardHeader>
             <CardContent>
               <div className="flex flex-wrap gap-2">
@@ -400,10 +416,21 @@ export default function RadarPage() {
               {selectedAdv ? (
                 <>Anuncios de <span className="text-primary">{selectedAdv}</span></>
               ) : (
-                <>Anunciantes con ≥ {minAds} anuncios activos</>
+                <>Anunciantes con ≥ {minAds} anuncios en esta búsqueda</>
               )}{" "}
               · {shown.length} creativos
             </h2>
+            {selectedAdv && (
+              <Button
+                variant="outline"
+                size="sm"
+                className="mb-3"
+                disabled={loading}
+                onClick={() => deepScanAdvertiser(selectedAdv)}
+              >
+                <Search className="h-4 w-4" /> Ver TODOS los anuncios de «{selectedAdv}» (nuevo análisis ~60s)
+              </Button>
+            )}
             {shown.length === 0 ? (
               <p className="rounded-lg border bg-card p-4 text-sm text-muted-foreground">
                 {typeFilter !== "all"
@@ -463,9 +490,12 @@ function AdCard({ ad, count }: { ad: RadarAd; count: number }) {
       <div className="space-y-2 p-4">
         <div className="flex flex-wrap items-center gap-2 font-semibold">
           <span>{ad.advertiser ?? "—"}</span>
-          <span className="inline-flex items-center gap-1 text-xs font-bold text-emerald-500">
+          <span
+            className="inline-flex items-center gap-1 text-xs font-bold text-emerald-500"
+            title="Anuncios de este anunciante encontrados en esta búsqueda (no su total)"
+          >
             <Flame className="h-3 w-3" />
-            {count} activos
+            {count} en esta búsqueda
           </span>
         </div>
         <div className="flex flex-wrap gap-1.5">
