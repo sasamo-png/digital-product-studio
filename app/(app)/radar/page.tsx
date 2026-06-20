@@ -36,7 +36,7 @@ type TypeFilter = "all" | "video" | "image";
 
 export default function RadarPage() {
   const [keyword, setKeyword] = useState("");
-  const [country, setCountry] = useState("AR");
+  const [country, setCountry] = useState("ALL");
   const [minAds, setMinAds] = useState(3);
   const [loading, setLoading] = useState(false);
   const [elapsed, setElapsed] = useState(0);
@@ -338,7 +338,7 @@ export default function RadarPage() {
             </CardHeader>
             <CardContent>
               <div className="flex flex-wrap gap-2">
-                {rank.slice(0, 15).map(([name, c], i) => (
+                {rank.map(([name, c], i) => (
                   <button
                     key={name}
                     onClick={() => setSelectedAdv((cur) => (cur === name ? null : name))}
@@ -438,10 +438,41 @@ export default function RadarPage() {
                   : `Ningún anunciante alcanza ${minAds} anuncios en esta muestra. Baja el mínimo o pulsa un anunciante del Top.`}
               </p>
             ) : (
-              <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-3">
-                {shown.map((ad, i) => (
-                  <AdCard key={(ad.libraryId || "") + i} ad={ad} count={counts[advOf(ad)] || 1} />
-                ))}
+              <div className="space-y-8">
+                {(() => {
+                  // Agrupa los anuncios visibles por anunciante (preservando el orden
+                  // de `shown` dentro de cada grupo); anunciantes ordenados por nº de
+                  // anuncios en esta búsqueda (desc) y, a igualdad, por nombre.
+                  const groups = new Map<string, RadarAd[]>();
+                  for (const ad of shown) {
+                    const name = advOf(ad);
+                    const list = groups.get(name);
+                    if (list) list.push(ad);
+                    else groups.set(name, [ad]);
+                  }
+                  return [...groups.entries()]
+                    .sort(
+                      (a, b) =>
+                        (counts[b[0]] || 0) - (counts[a[0]] || 0) ||
+                        a[0].localeCompare(b[0])
+                    )
+                    .map(([name, ads]) => (
+                      <section key={name} className="space-y-3">
+                        <div className="flex flex-wrap items-center gap-2 border-b pb-2">
+                          <h3 className="text-base font-semibold">{name}</h3>
+                          <span className="inline-flex items-center gap-1 text-xs font-bold text-emerald-500">
+                            <Flame className="h-3 w-3" />
+                            {counts[name] || ads.length} en esta búsqueda
+                          </span>
+                        </div>
+                        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-3">
+                          {ads.map((ad, i) => (
+                            <AdCard key={(ad.libraryId || "") + i} ad={ad} count={counts[advOf(ad)] || 1} />
+                          ))}
+                        </div>
+                      </section>
+                    ));
+                })()}
               </div>
             )}
           </div>
